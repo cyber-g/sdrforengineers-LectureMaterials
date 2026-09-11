@@ -1,0 +1,54 @@
+name: Build and Release
+
+# Trigger configuration: specifies when this workflow runs
+on:
+  push:
+    tags:
+      - '*'  # Run workflow only when a tag is pushed (e.g., git push origin v1.0.0)
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: texlive/texlive:latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Build lectures and labs
+        run: |
+          cd Slides
+          make 
+          zip lectures.zip *.pdf
+          zip labs.zip *.pdf
+      
+      - name: Create Release
+        uses: actions/create-release@v1
+        id: create_release
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Upload Release Lectures
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./Slides/lectures.zip
+          asset_name: lectures.zip
+          asset_content_type: application/zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Upload Release Labs
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./Slides/labs.zip
+          asset_name: labs.zip
+          asset_content_type: application/zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+
